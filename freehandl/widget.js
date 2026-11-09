@@ -202,17 +202,22 @@
     // messages become real links (built as DOM nodes, still no innerHTML).
     String(text).split('\n').forEach(function (line, i, arr) {
       if (role === 'assistant') {
-        var parts = line.split(/(https?:\/\/[^\s<]+)/g);
+        var parts = line.split(/(https?:\/\/[^\s<*]+)/g);
         parts.forEach(function (part) {
           if (/^https?:\/\//.test(part)) {
+            // Defensive: strip any trailing markdown/punctuation the model
+            // may have attached (e.g. **bold** or a closing parenthesis).
+            var trail = (part.match(/[\*).,;:!?]+$/) || [''])[0];
+            var clean = trail ? part.slice(0, -trail.length) : part;
             var a = document.createElement('a');
-            a.href = part;
+            a.href = clean;
             a.target = '_blank';
             a.rel = 'noopener';
-            a.textContent = part;
+            a.textContent = clean;
             a.style.color = 'inherit';
             a.style.textDecoration = 'underline';
             bubbleEl.appendChild(a);
+            if (trail) bubbleEl.appendChild(document.createTextNode(trail));
           } else if (part) {
             bubbleEl.appendChild(document.createTextNode(part));
           }
