@@ -3,9 +3,12 @@
  * Embed (one line on any website):
  *   <script async src="https://HOST/widget.js"
  *           data-client="freehandl"
+ *           data-agent="Handl"
  *           data-api="https://API-HOST"></script>
  *
  * - data-client : the client id from the backend registry (worker/clients/)
+ * - data-agent  : (optional) the agent's display name — brands the panel
+ *                 instantly and if the config request is ever blocked
  * - data-api    : base URL of the FreeHandl Worker (no trailing slash)
  *
  * The widget fetches its branding + greetings from GET /api/config, talks to
@@ -26,6 +29,10 @@
 
   var CLIENT = script.getAttribute('data-client');
   var API = (script.getAttribute('data-api') || '').replace(/\/+$/, '');
+  // Optional: the agent's display name, so the panel is branded correctly
+  // from the first paint (and even if the config request is blocked, e.g.
+  // in a site-builder preview). The backend config still wins when it loads.
+  var AGENT = script.getAttribute('data-agent') || '';
   if (!CLIENT || !API) {
     if (window.console) console.warn('[freehandl-widget] data-client and data-api attributes are required.');
     return;
@@ -111,6 +118,7 @@
   var headText = document.createElement('div');
   var title = document.createElement('div');
   title.className = 'fh-title';
+  title.textContent = AGENT; // branded immediately; config confirms it below
   var sub = document.createElement('div');
   sub.className = 'fh-sub';
   var closeBtn = document.createElement('button');
@@ -300,7 +308,8 @@
     })
     .catch(function () {
       // Site still gets a working bubble; chat calls will surface the error
-      // string in-panel if the backend is unreachable.
-      title.textContent = T.open;
+      // string in-panel if the backend is unreachable. Keep the agent's
+      // name as the title — never a generic "Chat with us".
+      title.textContent = AGENT || T.open;
     });
 })();
