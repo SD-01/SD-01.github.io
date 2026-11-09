@@ -198,9 +198,28 @@
     var bubbleEl = document.createElement('div');
     bubbleEl.className = 'fh-msg fh-' + role;
     // textContent only — never innerHTML — so neither visitor nor model
-    // output can inject markup into the host page.
+    // output can inject markup into the host page. URLs in assistant
+    // messages become real links (built as DOM nodes, still no innerHTML).
     String(text).split('\n').forEach(function (line, i, arr) {
-      bubbleEl.appendChild(document.createTextNode(line));
+      if (role === 'assistant') {
+        var parts = line.split(/(https?:\/\/[^\s<]+)/g);
+        parts.forEach(function (part) {
+          if (/^https?:\/\//.test(part)) {
+            var a = document.createElement('a');
+            a.href = part;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = part;
+            a.style.color = 'inherit';
+            a.style.textDecoration = 'underline';
+            bubbleEl.appendChild(a);
+          } else if (part) {
+            bubbleEl.appendChild(document.createTextNode(part));
+          }
+        });
+      } else {
+        bubbleEl.appendChild(document.createTextNode(line));
+      }
       if (i < arr.length - 1) bubbleEl.appendChild(document.createElement('br'));
     });
     row.appendChild(bubbleEl);
