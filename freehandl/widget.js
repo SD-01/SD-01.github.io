@@ -192,6 +192,20 @@
 
   var config = null;
 
+  // The model sometimes writes Markdown (**bold**, *italics*, ## headings,
+  // `code`). This widget renders plain text only (textContent, never
+  // innerHTML), so those markers would show literally — strip them from
+  // assistant messages before display. The words themselves are kept.
+  function stripMarkdown(s) {
+    return String(s)
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\*\*/g, '')
+      .replace(/^#{1,6}\s+/gm, '');
+  }
+
   function addMessage(role, text) {
     var row = document.createElement('div');
     row.className = 'fh-row ' + (role === 'user' ? 'fh-user' : 'fh-assistant');
@@ -200,7 +214,8 @@
     // textContent only — never innerHTML — so neither visitor nor model
     // output can inject markup into the host page. URLs in assistant
     // messages become real links (built as DOM nodes, still no innerHTML).
-    String(text).split('\n').forEach(function (line, i, arr) {
+    var displayText = role === 'assistant' ? stripMarkdown(text) : text;
+    String(displayText).split('\n').forEach(function (line, i, arr) {
       if (role === 'assistant') {
         var parts = line.split(/(https?:\/\/[^\s<*]+)/g);
         parts.forEach(function (part) {
