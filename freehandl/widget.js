@@ -93,6 +93,7 @@
   ].join('');
 
   var style = document.createElement('style');
+  style.setAttribute('data-fh', '1');
   style.textContent = css;
   document.head.appendChild(style);
 
@@ -169,6 +170,7 @@
     send.style.background = COLOR;
     book.style.color = COLOR;
     var userStyle = document.createElement('style');
+    userStyle.setAttribute('data-fh', '1');
     userStyle.textContent = '.fh-msg.fh-user{background:' + COLOR + ';}';
     document.head.appendChild(userStyle);
   }
@@ -328,13 +330,27 @@
     }
   });
 
+  // If FreeHandl has switched this agent off (cancelled client), the
+  // config endpoint answers 410 and the widget removes itself entirely —
+  // bubble, panel and styles — so nothing of the agent stays on the site.
+  // Any other failure keeps the bubble (a temporary outage must not strip
+  // a paying client's site).
+  function removeSelf() {
+    var r = document.getElementById('fh-widget-root');
+    if (r) r.remove();
+    var styles = document.querySelectorAll('style[data-fh]');
+    for (var i = 0; i < styles.length; i++) styles[i].remove();
+  }
+
   // ---- load config, then restyle -------------------------------------------
   fetch(API + '/api/config?client=' + encodeURIComponent(CLIENT))
     .then(function (res) {
+      if (res.status === 410) { removeSelf(); return null; }
       if (!res.ok) throw new Error('config http ' + res.status);
       return res.json();
     })
     .then(function (cfg) {
+      if (!cfg) return; // agent switched off — widget already removed
       config = cfg;
       if (cfg.color) { COLOR = cfg.color; applyColor(); }
       title.textContent = cfg.agentName || cfg.displayName;
